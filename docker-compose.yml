@@ -1,0 +1,16 @@
+version: "3.6"
+services:
+
+  db_demo:
+    image: "postgres:11.14"
+    ports:
+      - "15943:5432"
+    environment:
+      POSTGRES_DB: db_demo
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+    volumes:
+      - db-demo:/var/lib/postgresql/data
+
+volumes:
+  db-demo:
