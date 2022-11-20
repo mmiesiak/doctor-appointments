@@ -1,6 +1,5 @@
 package com.example.demo.acceptance;
 
-import com.example.demo.appointment.repository.entity.DoctorEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -8,6 +7,11 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+
+import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -86,7 +90,7 @@ class BookAppointmentValidationAcceptanceTest extends BaseAcceptanceTest {
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<String> httpEntity = new HttpEntity<>(request, headers);
+        var httpEntity = new HttpEntity<>(request, headers);
 
         // When
         var response = testRestTemplate.postForEntity("/api/v1/doctors/1/appointments", httpEntity, String.class);
@@ -110,7 +114,7 @@ class BookAppointmentValidationAcceptanceTest extends BaseAcceptanceTest {
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<String> httpEntity = new HttpEntity<>(request, headers);
+        var httpEntity = new HttpEntity<>(request, headers);
 
         // When
         var response = testRestTemplate.postForEntity("/api/v1/doctors/1/appointments", httpEntity, String.class);
@@ -130,7 +134,7 @@ class BookAppointmentValidationAcceptanceTest extends BaseAcceptanceTest {
     })
     void bookAppointment_shouldReturnNotFound_whenOpeningIsNotFound(String fromTime, String toTime) {
         // Given
-        DoctorEntity doctorEntity = createAndSaveDoctor("15:00", "18:00");
+        var doctorEntity = createAndSaveDoctor("15:00", "18:00");
 
         var request = """
                 {
@@ -144,7 +148,7 @@ class BookAppointmentValidationAcceptanceTest extends BaseAcceptanceTest {
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<String> httpEntity = new HttpEntity<>(request, headers);
+        var httpEntity = new HttpEntity<>(request, headers);
 
         // When
         var response = testRestTemplate.postForEntity("/api/v1/doctors/%s/appointments".formatted(doctorEntity.getId()), httpEntity, String.class);
@@ -163,7 +167,7 @@ class BookAppointmentValidationAcceptanceTest extends BaseAcceptanceTest {
     })
     void bookAppointment_shouldReturnConflict_whenOpeningIsAlreadyBooked(String fromTime, String toTime) {
         // Given
-        DoctorEntity doctorEntity = createAndSaveDoctor("14:00", "19:00");
+        var doctorEntity = createAndSaveDoctor("14:00", "19:00");
         createAndSaveAppointment(doctorEntity.getId(), "2022-01-01", "15:00", "18:00");
 
         var request = """
@@ -178,7 +182,7 @@ class BookAppointmentValidationAcceptanceTest extends BaseAcceptanceTest {
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<String> httpEntity = new HttpEntity<>(request, headers);
+        var httpEntity = new HttpEntity<>(request, headers);
 
         // When
         var response = testRestTemplate.postForEntity("/api/v1/doctors/%s/appointments".formatted(doctorEntity.getId()), httpEntity, String.class);
@@ -190,9 +194,50 @@ class BookAppointmentValidationAcceptanceTest extends BaseAcceptanceTest {
     // todo: sends concurrently 50 requests for the same opening and verify that only one appointment is booked
     @Test
     void bookAppointment_shouldReturnConflict_whenMultiplePatientsTryToBookTheSameOpening() {
-//        List<CompletableFuture> requests = new ArrayList<>();
-//        IntStream.range(1, 50).forEach(ignore -> requests.add(CompletableFuture.supplyAsync(() -> null)));
-//
-//        CompletableFuture.allOf(requests.toArray(new CompletableFuture[requests.size()]));
+        // Given: a doctor with working hours from 15:00 to 18:00
+        var doctorEntity = createAndSaveDoctor("15:00", "18:00");
+
+        // And: an appointment request withing working hours
+        var request = """
+                {
+                    "date": "2022-01-01",
+                    "fromTime": "15:00",
+                    "toTime": "16:00",
+                    "name": "John Doe"
+                }
+                """;
+
+        // And: a http header with JSON content type
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        var httpEntity = new HttpEntity<>(request, headers);
+
+        // And: list of 50 completable future
+        var counter = new AtomicInteger(0);
+        var requests = new ArrayList<CompletableFuture>();
+
+        IntStream.range(0, 50).forEach(ignore ->
+                requests.add(CompletableFuture.supplyAsync(() -> {
+                    try {
+                        testRestTemplate.postForEntity("/api/v1/doctors/%s/appointments".formatted(doctorEntity.getId()), httpEntity, String.class);
+                    } catch (Exception e) {
+                        // swallow
+                    }
+                    counter.incrementAndGet();
+                    return null;
+                }))
+        );
+
+        var completableFuture = CompletableFuture.allOf(requests.toArray(new CompletableFuture[requests.size()]));
+
+        // When: waiting for all completable future to complete
+        completableFuture.join();
+
+        // Then: all requests are sent successfully
+        assertEquals(50, counter.get());
+
+        // And: only one appointment is created
+        assertEquals(1, appointmentRepository.count());
     }
 }

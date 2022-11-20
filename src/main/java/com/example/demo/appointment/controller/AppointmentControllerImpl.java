@@ -7,6 +7,8 @@ import com.example.demo.appointment.controller.response.OpeningResponse;
 import com.example.demo.appointment.domain.Appointment;
 import com.example.demo.appointment.domain.Opening;
 import com.example.demo.appointment.service.AppointmentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -15,6 +17,7 @@ import java.util.List;
 
 @RestController
 class AppointmentControllerImpl implements AppointmentController {
+    private static final Logger log = LoggerFactory.getLogger(AppointmentControllerImpl.class);
 
     private final AppointmentService appointmentService;
     private final AppointmentControllerMapper mapper;
@@ -34,6 +37,9 @@ class AppointmentControllerImpl implements AppointmentController {
      */
     @Override
     public ResponseEntity<AppointmentResponse> bookAppointment(AppointmentRequest appointmentRequest, Long doctorId) {
+        log.info("Booking new appointment for doctor {} on date {} {} - {}", doctorId, appointmentRequest.getDate(),
+                appointmentRequest.getFromTime(), appointmentRequest.getToTime());
+
         Appointment appointment = appointmentService.bookAppointment(mapper.toCreateAppointmentCommand(appointmentRequest, doctorId));
 
         URI location = URI.create(AppointmentController.GET_APPOINTMENT_ENDPOINT_PATH.formatted(appointment.getId()));

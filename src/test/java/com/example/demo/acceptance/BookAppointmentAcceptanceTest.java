@@ -1,6 +1,5 @@
 package com.example.demo.acceptance;
 
-import com.example.demo.appointment.repository.entity.DoctorEntity;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -63,7 +62,7 @@ class BookAppointmentAcceptanceTest extends BaseAcceptanceTest {
     @Test
     void bookAppointment() throws JSONException {
         // Given: a doctor with working hours from 15:00 to 18:00
-        DoctorEntity doctorEntity = createAndSaveDoctor("15:00", "18:00");
+        var doctorEntity = createAndSaveDoctor("15:00", "18:00");
 
         // And: an appointment request withing working hours
         var request = """
@@ -79,7 +78,7 @@ class BookAppointmentAcceptanceTest extends BaseAcceptanceTest {
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<String> httpEntity = new HttpEntity<>(request, headers);
+        var httpEntity = new HttpEntity<>(request, headers);
 
         // When: sending a POST request to the endpoint `/api/v1/doctors/{doctorId}/appointments`
         var response = testRestTemplate.postForEntity("/api/v1/doctors/%s/appointments".formatted(doctorEntity.getId()), httpEntity, String.class);

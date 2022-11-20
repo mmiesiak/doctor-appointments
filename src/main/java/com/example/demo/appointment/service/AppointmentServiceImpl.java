@@ -11,6 +11,7 @@ import com.example.demo.exception.ApplicationConflictException;
 import com.example.demo.exception.ApplicationNotFoundException;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -42,8 +43,9 @@ class AppointmentServiceImpl implements AppointmentService {
      * @return Appointment
      */
     @Override
+    @Transactional
     public Appointment bookAppointment(CreateAppointmentCommand createAppointmentCommand) {
-        DoctorEntity doctorEntity = doctorRepository.findById(createAppointmentCommand.getDoctorId())
+        DoctorEntity doctorEntity = doctorRepository.findAndLockById(createAppointmentCommand.getDoctorId())
                 .orElseThrow(ApplicationNotFoundException::new);
 
         validateWorkingHours(doctorEntity, createAppointmentCommand);

@@ -1,6 +1,5 @@
 package com.example.demo.acceptance;
 
-import com.example.demo.appointment.repository.entity.DoctorEntity;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -60,7 +59,7 @@ class ListOpeningsAcceptanceTest extends BaseAcceptanceTest {
     @Test
     void listOpenings() throws JSONException {
         // Given: a doctor with working hours from 15:00 to 18:00
-        DoctorEntity doctorEntity = createAndSaveDoctor("15:00", "18:00");
+        var doctorEntity = createAndSaveDoctor("15:00", "18:00");
 
         // And: some appointments for the doctor
         createAndSaveAppointment(doctorEntity.getId(), "2022-01-01", "15:00", "15:30");

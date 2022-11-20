@@ -7,6 +7,7 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Version;
 import java.time.Instant;
 import java.time.LocalTime;
 
@@ -40,6 +41,9 @@ public class DoctorEntity {
     @CreationTimestamp
     @Column(updatable = false, nullable = false)
     private Instant createdAt;
+
+    @Version
+    private Long version;
 
     public Long getId() {
         return id;
@@ -79,5 +83,13 @@ public class DoctorEntity {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }
